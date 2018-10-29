@@ -28,13 +28,13 @@ const fields = [
 const json2csvParser =new Json2CsvParser({fields})
 const path = require('path')
 
-function requireAll() {
+function requireAll(dir) {
     return new Promise((resolve, reject) => {
-        fs.readdir('./', (err, fileList) => {
+        fs.readdir(`./comments/${dir}/`, (err, fileList) => {
             var total = []
             fileList.forEach(file => {
-                if(/comments.*\.json/.test(file)){
-                    const filename = path.resolve(__dirname, file)
+                if(/\.json/.test(file)){
+                    const filename = path.resolve(__dirname, `./comments/${dir}/`, file)
                     const data = require(filename)
                     data.forEach(item => {
                         total.push(item)
@@ -46,22 +46,20 @@ function requireAll() {
     })
 }
 
-requireAll().then(total => {
-    const comments_csv = json2csvParser.parse(total)
-    fs.writeFile(
-        './comments.csv',
-        comments_csv,
-        {
-            encoding: 'utf8',
+function toCSV(dir) {
+    requireAll(dir).then(total => {
+        const comments_csv = json2csvParser.parse(total)
+        fs.writeFile(
+            `./csv/${dir}.csv`,
+            comments_csv,
+            'utf8',
+            function(err, data) {
+                if(err) console.error(err)
+                console.log('保存csv文件成功！')
+            })
+    });
+}
 
-        },
-        function(err, data) {
-            if(err) console.error(err)
-        })
-});
 
-
-// const csv =json2csvParser.parse(require('./comments.json'))
-
-// console.log(csv)
+module.exports = toCSV
 

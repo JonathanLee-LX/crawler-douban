@@ -3,6 +3,7 @@ var http = require('http'),
     cheerio = require('cheerio'),
     path = require('path'),
     fs = require('fs');
+    toCSV = require('./toCSV')
 
 var opt = {
     hostname: 'movie.douban.com',
@@ -10,59 +11,11 @@ var opt = {
     port: 80
 };
 
-function spiderMovie(index) {
-    // https.get('https://movie.douban.com/top250?start=' + index, function (res) {
-    https.get('https://movie.douban.com/subject/1292052/reviews', function (res) {
-        var pageSize = 25;
-        var html = '';
-        var movies = [];
-        var comments = [];
-        res.setEncoding('utf-8');
-        res.on('data', function (chunk) {
-            html += chunk;
-        });
-        res.on('end', function () {
-            var $ = cheerio.load(html);
-            // $('.item').each(function () {
-            //     var picUrl = $('.pic img', this).attr('src');
-            //     var movie = {
-            //         title: $('.title', this).text(),
-            //         star: $('.info .star .rating_num', this).text(),
-            //         link: $('a', this).attr('href'),
-            //         picUrl: picUrl,
-            //         desc: $('.quote .inq', this).text().trim(),
-            //         creator: $('.info .bd p', this).text().trim(),
-            //     };
-            //     if (movie) {
-            //         movies.push(movie);
-            //     }
-            //     downloadImg('./img/', movie.picUrl);
-            // });
-            // console.log(html)
-            $('.review-item').each(function() {
-                var comment = {
-                    username: $('.main-hd .name', this).text().trim(),
-                    time: $('.main-meta', this).text().trim(),
-                    content: $('.review-short .short-content', this).text().trim(),
-                    up: $('.main-bd .up span', this).text().trim(),
-                    down: $('.main-bd .down span', this).text().trim(),
-                    rate: $('.main-bd .main-title-rating', this).attr('title')
-                }
-                console.log($('.main-hd .name', this).text())
-                if(comment){
-                    comments.push(comment)
-                }
-            })
-            // saveData('./data' + (index / pageSize) + '.json', movies);
-            saveData('./comments.json', comments);
-        });
-    }).on('error', function (err) {
-        console.log(err);
-    });
-}
-
+var page = 1
 function spiderComments(index) {
-        https.get(`https://movie.douban.com/subject/1292052/reviews?start=${index}`, function (res) {
+    return new Promise((resolve, reject) => {
+
+        https.get(`https://movie.douban.com/subject/3231742/reviews?start=${index}`, function (res) {
             var html = '';
             var pageSize = 20;
             var comments = [];
@@ -72,6 +25,7 @@ function spiderComments(index) {
             });
             res.on('end', function () {
                 var $ = cheerio.load(html);
+                var title = $('#content h1').text().trim()
                 $('.review-item').each(function () {
                     var comment = {
                         username: $('.main-hd .name', this).text().trim(),
@@ -85,11 +39,15 @@ function spiderComments(index) {
                         comments.push(comment)
                     }
                 })
-                saveData(`./comments${index/pageSize}.json`, comments);
+                saveData(`./comments/${title}/`, `${page}.json`, comments);
+                page++
+                resolve(title)
             });
         }).on('error', function (err) {
             console.log(err);
+            reject()
         });
+    })
 }
 
 /*下载图片
@@ -116,12 +74,17 @@ function downloadImg(imgDir, url) {
 }
 
 /* 保存数据到本地 *
- * @param { string } path 保存数据的文件夹
+ * @param { string } filename 保存数据的文件夹
  * @param { array } movies 电影信息数组
 */
-function saveData(path, movies) {
-    console.log(movies);
-    fs.writeFile(path, JSON.stringify(movies, null, ' '), function (err) {
+function saveData(dir, filename, movies) {
+    if (!isExistDir(dir)) {
+        mkdir(dir)
+        console.log(`成功创建${dir}`)
+    }
+    const absPath = path.resolve(dir, filename)
+    const content = JSON.stringify(movies, null, ' ')
+    fs.writeFile(absPath, content, function (err) {
         if (err) {
             return console.log(err);
         }
@@ -129,35 +92,47 @@ function saveData(path, movies) {
     });
 }
 
+/**
+ *判断dir是否有效
+ *
+ * @param {*} dir目录路径
+ * @returns 目录是否有效
+ */
+function isExistDir(dir) {
+    try {
+        fs.accessSync(dir)
+    } catch (error) {
+        console.log(`${dir}不是有效的路径`)
+        return false
+    }
+    return true
+}
+
+function mkdir(dir) {
+    try {
+        fs.mkdirSync(dir)
+    } catch (error) {
+        return false
+    }
+    return true
+}
+
 // spiderMovie()
 spiderComments()
 
-function* doSpiderComments(total) {
-    var start = 0;
-    console.log(start + '---------------------------');
-
-    while(start < total) {
-        yield start
-        spiderComments(start);
-        start += 20;
+async function doSpiderComments(total) {
+    var rest = total
+    var pageSize = 20
+    var dir
+    while(rest) {
+        try {
+            dir = await spiderComments(pageSize)
+            rest -= pageSize
+        } catch (error) {
+            console('failed...')
+        }
     }
+    toCSV(dir)
 }
 
-for(var x of doSpiderComments(1000)) {
-    console.log(x);
-}
-
-// function doSpider(x) {
-//     var start = 0;
-//     console.log(start + ' -------------------------------');
-//     while (start < x) {
-//         spiderMovie(start);
-//         start += 25;
-//     }
-// }
-
-// doSpider(250)
-
-// for (var x of doSpider(250)) {
-//     console.log(x);
-// }
+doSpiderComments(40)
