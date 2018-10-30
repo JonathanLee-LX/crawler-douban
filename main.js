@@ -3,7 +3,7 @@ var http = require('http'),
     cheerio = require('cheerio'),
     path = require('path'),
     fs = require('fs');
-    toCSV = require('./toCSV')
+toCSV = require('./toCSV')
 
 var opt = {
     hostname: 'movie.douban.com',
@@ -12,32 +12,17 @@ var opt = {
 };
 
 var page = 1
+
 function spiderComments(url, index) {
     return new Promise((resolve, reject) => {
         https.get(`${url}?start=${index}`, function (res) {
             var html = '';
-            var pageSize = 20;
-            var comments = [];
             res.setEncoding('utf-8');
             res.on('data', function (chunk) {
                 html += chunk;
             });
             res.on('end', function () {
-                var $ = cheerio.load(html);
-                var title = $('#content h1').text().trim()
-                $('.review-item').each(function () {
-                    var comment = {
-                        username: $('.main-hd .name', this).text().trim(),
-                        time: $('.main-meta', this).text().trim(),
-                        content: $('.review-short .short-content', this).text().trim(),
-                        up: $('.main-bd .up span', this).text().trim(),
-                        down: $('.main-bd .down span', this).text().trim(),
-                        rate: $('.main-bd .main-title-rating', this).attr('title')
-                    }
-                    if (comment) {
-                        comments.push(comment)
-                    }
-                })
+                var {title, comments} = parseLongComment(html)
                 saveData(`./comments/${title}/`, `${page}.json`, comments);
                 page++
                 resolve(title)
@@ -49,9 +34,75 @@ function spiderComments(url, index) {
     })
 }
 
+function spiderShortComments(url, index) {
+    return new Promise((resolve, reject) => {
+        https.get(`${url}?start=${index}`, function (res) {
+            var html = '';
+            res.setEncoding('utf-8');
+            res.on('data', function (chunk) {
+                html += chunk;
+            });
+            res.on('end', function () {
+                var { title, comments } = parseShortComment(html)
+                saveData(`./comments/${title}/`, `${page}.json`, comments);
+                page++
+                resolve(title)
+            });
+        }).on('error', function (err) {
+            console.log(err);
+            reject()
+        });
+    })
+}
+
+function parseLongComment(html) {
+    var comments = []
+    var $ = cheerio.load(html);
+    var title = $('#content h1').text().trim()
+    $('.review-item').each(function () {
+        var comment = {
+            username: $('.main-hd .name', this).text().trim(),
+            time: $('.main-meta', this).text().trim(),
+            content: $('.review-short .short-content', this).text().trim(),
+            up: $('.main-bd .up span', this).text().trim(),
+            down: $('.main-bd .down span', this).text().trim(),
+            rate: $('.main-bd .main-title-rating', this).attr('title')
+        }
+        if (comment) {
+            comments.push(comment)
+        }
+    })
+    return {
+        title,
+        comments
+    }
+}
+
+function parseShortComment(html) {
+    var comments = []
+    var $ = cheerio.load(html);
+    var title = $('#content h1').text().trim()
+    $('#comments .comment-item').each(function () {
+        var comment = {
+            username: $('.comment-info a', this).text().trim(),
+            time: $('.comment-info .comment-time', this).text().trim(),
+            content: $('.short', this).text().trim(),
+            up: $('.comment-vote .votes', this).text().trim(),
+            rate: $('.comment-info .rating', this).attr('title')
+        }
+        if (comment) {
+            comments.push(comment)
+        }
+    })
+    return {
+        title,
+        comments
+    }
+}
+
 /*下载图片
-* @param { string } imgDir 存放图片的文件夹 * @param { string } url 图片的URL地址
-*/
+ * @param { string } imgDir 存放图片的文件夹 * @param { string } url 图片的URL地址
+ */
 function downloadImg(imgDir, url) {
     https.get(url, function (res) {
         var data = '';
@@ -75,7 +126,7 @@ function downloadImg(imgDir, url) {
 /* 保存数据到本地 *
  * @param { string } filename 保存数据的文件夹
  * @param { array } movies 电影信息数组
-*/
+ */
 function saveData(dir, filename, movies) {
     if (!isExistDir(dir)) {
         mkdir(dir)
@@ -117,23 +168,32 @@ function mkdir(dir) {
 }
 
 // spiderMovie()
-spiderComments()
+// spiderComments()
 
 async function doSpiderComments(url, total) {
+    var isShort = url.indexOf('reviews') !== -1 ? false : true
     var rest = total
     var pageSize = 20
     var start = 0
     var dir
-    while(rest) {
+    while (rest) {
         try {
-            dir = await spiderComments(url, start)
+            if(isShort) {
+                dir = await spiderShortComments(url, start)
+            }else {
+                dir = await spiderComments(url, start)
+            }
             rest -= pageSize
             start += pageSize
         } catch (error) {
             console('failed...')
         }
     }
-    toCSV(dir)
+    if(!isShort){
+        toCSV.toCSV(dir)
+    }else {
+        toCSV.shortToCSV(dir)
+    }
 }
 
 // doSpiderComments(40)
