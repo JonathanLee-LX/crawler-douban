@@ -12,10 +12,9 @@ var opt = {
 };
 
 var page = 1
-function spiderComments(index) {
+function spiderComments(url, index) {
     return new Promise((resolve, reject) => {
-
-        https.get(`https://movie.douban.com/subject/3231742/reviews?start=${index}`, function (res) {
+        https.get(`${url}?start=${index}`, function (res) {
             var html = '';
             var pageSize = 20;
             var comments = [];
@@ -120,14 +119,16 @@ function mkdir(dir) {
 // spiderMovie()
 spiderComments()
 
-async function doSpiderComments(total) {
+async function doSpiderComments(url, total) {
     var rest = total
     var pageSize = 20
+    var start = 0
     var dir
     while(rest) {
         try {
-            dir = await spiderComments(pageSize)
+            dir = await spiderComments(url, start)
             rest -= pageSize
+            start += pageSize
         } catch (error) {
             console('failed...')
         }
@@ -135,4 +136,6 @@ async function doSpiderComments(total) {
     toCSV(dir)
 }
 
-doSpiderComments(40)
+// doSpiderComments(40)
+
+module.exports = doSpiderComments

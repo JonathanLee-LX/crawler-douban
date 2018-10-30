@@ -9,34 +9,30 @@
 <body>
     <h1>Hello World!</h1>
     <input id="link" type="text" placeholder="请输入豆瓣链接">
+    <input id="total" type="number" placeholder="请输入需要爬取的评论数" step="20" min="20" max="200">
     <button id="btn">抓取</button>
 </body>
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
 <script type="text/javascript">
-    // window.onload = function() {
-    //     var btn = document.getElementById('btn'),
-    //         link = document.getElementById('link');
-
-    //     btn.addEventListener('click', function(e) {
-    //         e.preventDefault();
-    //     })
-    // }
-
     $(document).ready(function() {
         $('#btn').on('click', function (e) {
             e.preventDefault()
             var link = $('#link').val()
+            var total = $('#total').val()
             $.ajax({
                 type: 'post',
                 url: 'http://localhost:3000',
                 data: {
-                    link
+                    link,
+                    total
                 },
                 success: function(res) {
                     console.log(res)
+                    alert(res.data)
                 },
                 error: function(error) {
                     console.log(error)
+                    alert(res.data)
                 }
             })
         })
