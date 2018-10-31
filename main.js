@@ -5,6 +5,9 @@ var http = require('http'),
     fs = require('fs');
 toCSV = require('./toCSV')
 
+const ProgressBar = require('progress')
+const chalk = require('chalk')
+
 var opt = {
     hostname: 'movie.douban.com',
     path: '/top250',
@@ -22,7 +25,10 @@ function spiderComments(url, index) {
                 html += chunk;
             });
             res.on('end', function () {
-                var {title, comments} = parseLongComment(html)
+                var {
+                    title,
+                    comments
+                } = parseLongComment(html)
                 saveData(`./comments/${title}/`, `${page}.json`, comments);
                 page++
                 resolve(title)
@@ -35,6 +41,8 @@ function spiderComments(url, index) {
 }
 
 function spiderShortComments(url, index) {
+    // 去除url中的querystring
+    url = url.split('?')[0]
     return new Promise((resolve, reject) => {
         https.get(`${url}?start=${index}`, function (res) {
             var html = '';
@@ -43,7 +51,10 @@ function spiderShortComments(url, index) {
                 html += chunk;
             });
             res.on('end', function () {
-                var { title, comments } = parseShortComment(html)
+                var {
+                    title,
+                    comments
+                } = parseShortComment(html)
                 saveData(`./comments/${title}/`, `${page}.json`, comments);
                 page++
                 resolve(title)
@@ -138,7 +149,7 @@ function saveData(dir, filename, movies) {
         if (err) {
             return console.log(err);
         }
-        console.log('Data saved');
+        // console.log('Data saved');
     });
 }
 
@@ -176,11 +187,16 @@ async function doSpiderComments(url, total) {
     var pageSize = 20
     var start = 0
     var dir
+
+    const bar = new ProgressBar(':bar', {
+        total: total/pageSize
+    })
+
     while (rest) {
         try {
-            if(isShort) {
+            if (isShort) {
                 dir = await spiderShortComments(url, start)
-            }else {
+            } else {
                 dir = await spiderComments(url, start)
             }
             rest -= pageSize
@@ -188,12 +204,14 @@ async function doSpiderComments(url, total) {
         } catch (error) {
             console('failed...')
         }
+        bar.tick()
     }
-    if(!isShort){
+    if (!isShort) {
         toCSV.toCSV(dir)
-    }else {
+    } else {
         toCSV.shortToCSV(dir)
     }
+    console.log(chalk.bgGreen('保存为csv成功！'))
 }
 
 // doSpiderComments(40)

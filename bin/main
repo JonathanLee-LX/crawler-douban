@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+
+const spider = require('../main')
+
+const chalk = require('chalk')
+
+const inquirer = require('inquirer')
+
+program.version('0.0.1', '-v, --version')
+    .command('download')
+    .action(() => {
+        inquirer.prompt([
+            {
+                name: 'url',
+                message: '请输入豆瓣链接'
+            },
+            {
+                name: 'sum',
+                message: '请输入需要的评论数'
+            }
+        ]).then((answers) => {
+            console.log(chalk.bgBlue.bold(`正在爬取${answers.url}的评论，共计${answers.sum}条`))
+            spider(answers.url, answers.sum)
+            .then(() => {
+                console.log(chalk.green('数据爬取完成'))
+            })
+            .catch(err => {
+                console.error(err)
+            })
+        })
+    });
+program.parse(process.argv);

@@ -6,7 +6,9 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "chalk": "^2.4.1",
     "cheerio": "^1.0.0-rc.2",
+    "commander": "^2.19.0",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.16.0",
@@ -16,6 +18,11 @@
     "pug": "2.0.0-beta11"
   },
   "devDependencies": {
-    "open": "0.0.5"
+    "inquirer": "^6.2.0",
+    "open": "0.0.5",
+    "progress": "^2.0.1"
+  },
+  "bin": {
+    "cr": "bin/main"
   }
 }
