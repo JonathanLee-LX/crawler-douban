@@ -1,7 +1,7 @@
 {
-  "name": "crawler-douban",
+  "name": "@jonathanleelx/crawler-douban",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "scripts": {
     "start": "node ./bin/www"
   },
@@ -15,6 +15,7 @@
     "http-errors": "~1.6.2",
     "json2csv": "^4.2.1",
     "morgan": "~1.9.0",
+    "npm": "^6.4.1",
     "pug": "2.0.0-beta11"
   },
   "devDependencies": {
@@ -24,5 +25,17 @@
   },
   "bin": {
     "cr": "bin/main"
-  }
+  },
+  "description": "��#\u0000 \u0000c\u0000r\u0000a\u0000w\u0000l\u0000e\u0000r\u0000-\u0000d\u0000o\u0000u\u0000b\u0000a\u0000n\u0000\r\u0000 \u0000",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JonathanLee-LX/crawler-douban.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JonathanLee-LX/crawler-douban/issues"
+  },
+  "homepage": "https://github.com/JonathanLee-LX/crawler-douban#readme"
 }

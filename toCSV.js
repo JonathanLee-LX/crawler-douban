@@ -2,6 +2,8 @@ const fs = require('fs')
 
 const Json2CsvParser = require('json2csv').Parser
 
+const chalk = require('chalk')
+
 const fields = [
     {
         label: '用户名',
@@ -82,6 +84,7 @@ function shortToCSV(dir) {
             function(err, data) {
                 if(err) console.error(err)
                 console.log('保存csv文件成功！')
+                addBOM(`./csv/${dir}.csv`);
             })
     });
 }
@@ -96,8 +99,18 @@ function toCSV(dir) {
             function(err, data) {
                 if(err) console.error(err)
                 console.log('保存csv文件成功！')
+                addBOM(`./csv/${dir}.csv`);
             })
     });
+}
+
+function addBOM(pathname) {
+    let str = fs.readFileSync(pathname, 'utf8');
+    str = '\ufeff' + str;
+    fs.writeFile(pathname, str, (err, data) => {
+        if(err) console.err('添加BOM头失败');
+        console.log(chalk.green('添加BOM头，保存成功！'))
+    })
 }
 
 
